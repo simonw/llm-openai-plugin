@@ -1,0 +1,31 @@
+[project]
+name = "llm-openai"
+version = "0.1"
+description = "LLM plugin for OpenAI"
+readme = "README.md"
+authors = [{name = "Simon Willison"}]
+license = {text = "Apache-2.0"}
+classifiers = [
+    "License :: OSI Approved :: Apache Software License"
+]
+requires-python = ">=3.9"
+dependencies = [
+    "llm>=0.23",
+    "openai>=1.67.0",
+]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project.urls]
+Homepage = "https://github.com/simonw/llm-openai"
+Changelog = "https://github.com/simonw/llm-openai/releases"
+Issues = "https://github.com/simonw/llm-openai/issues"
+CI = "https://github.com/simonw/llm-openai/actions"
+
+[project.entry-points.llm]
+openai = "llm_openai"
+
+[project.optional-dependencies]
+test = ["pytest"]
