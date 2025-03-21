@@ -15,11 +15,18 @@ from typing import AsyncGenerator, Iterator, Optional
 
 @hookimpl
 def register_models(register):
-    # GPT-4o family
-    for model_id in ("gpt-4o", "gpt-4o-mini"):
+    models = {
+        "gpt-4o": {"vision": True},
+        "gpt-4o-mini": {"vision": True},
+        "o3-mini": {"reasoning": True},
+        "o1-mini": {"reasoning": True},
+        "o1": {"reasoning": True, "vision": True},
+        "o1-pro": {"reasoning": True, "vision": True, "streaming": False},
+    }
+    for model_id, options in models.items():
         register(
-            ResponsesModel(model_id, vision=True),
-            AsyncResponsesModel(model_id, vision=True),
+            ResponsesModel(model_id, **options),
+            AsyncResponsesModel(model_id, **options),
         )
 
 
@@ -32,6 +39,12 @@ class ImageDetailEnum(str, Enum):
     low = "low"
     high = "high"
     auto = "auto"
+
+
+class ReasoningEffortEnum(str, Enum):
+    low = "low"
+    medium = "medium"
+    high = "high"
 
 
 class BaseOptions(Options):
@@ -85,7 +98,19 @@ class BaseOptions(Options):
 class VisionOptions(Options):
     image_detail: Optional[ImageDetailEnum] = Field(
         description=(
-            "low = fixed tokens per image. high = more tokens for larger images. auto = model decides. Default is low."
+            "low = fixed tokens per image. high = more tokens for larger images. "
+            "auto = model decides. Default is low."
+        ),
+        default=None,
+    )
+
+
+class ReasoningOptions(Options):
+    reasoning_effort: Optional[ReasoningEffortEnum] = Field(
+        description=(
+            "Constraints effort on reasoning for reasoning models. Currently supported "
+            "values are low, medium, and high. Reducing reasoning effort can result in "
+            "faster responses and fewer tokens used on reasoning in a response."
         ),
         default=None,
     )
@@ -95,11 +120,11 @@ class _SharedResponses:
     needs_key = "openai"
     key_env_var = "OPENAI_API_KEY"
 
-    def __init__(self, model_name, vision=False, streaming=True):
+    def __init__(self, model_name, vision=False, streaming=True, reasoning=False):
         self.model_id = "openai/" + model_name
         self.model_name = model_name
         self.can_stream = streaming
-        self.Options = BaseOptions
+        options = [BaseOptions]
         if vision:
             self.attachment_types = {
                 "image/png",
@@ -108,7 +133,10 @@ class _SharedResponses:
                 "image/gif",
                 "application/pdf",
             }
-            self.Options = combine_options(BaseOptions, VisionOptions)
+            options.append(VisionOptions)
+        if reasoning:
+            options.append(ReasoningOptions)
+        self.Options = combine_options(*options)
 
     def __str__(self):
         return f"OpenAI Responses: {self.model_id}"
