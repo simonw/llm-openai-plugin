@@ -1,11 +1,14 @@
+from enum import Enum
 from llm import (
     KeyModel,
     hookimpl,
+    Options,
     Prompt,
     Response,
     Conversation,
 )
 import openai
+from pydantic import Field
 from typing import Iterator, Optional
 
 
@@ -16,6 +19,59 @@ def register_models(register):
         register(ResponsesModel(model_id, vision=True))
 
 
+class TruncationEnum(str, Enum):
+    auto = "auto"
+    disabled = "disabled"
+
+
+class BaseOptions(Options):
+    max_output_tokens: Optional[int] = Field(
+        description=(
+            "An upper bound for the number of tokens that can be generated for a "
+            "response, including visible output tokens and reasoning tokens."
+        ),
+        ge=0,
+        default=None,
+    )
+    temperature: Optional[float] = Field(
+        description=(
+            "What sampling temperature to use, between 0 and 2. Higher values like "
+            "0.8 will make the output more random, while lower values like 0.2 will "
+            "make it more focused and deterministic."
+        ),
+        ge=0,
+        le=2,
+        default=None,
+    )
+    top_p: Optional[float] = Field(
+        description=(
+            "An alternative to sampling with temperature, called nucleus sampling, "
+            "where the model considers the results of the tokens with top_p "
+            "probability mass. So 0.1 means only the tokens comprising the top "
+            "10% probability mass are considered. Recommended to use top_p or "
+            "temperature but not both."
+        ),
+        ge=0,
+        le=1,
+        default=None,
+    )
+    store: Optional[bool] = Field(
+        description=(
+            "Whether to store the generated model response for later retrieval via API."
+        ),
+        default=None,
+    )
+    truncation: Optional[TruncationEnum] = Field(
+        description=(
+            "The truncation strategy to use for the model response. If 'auto' and the "
+            "context of this response and previous ones exceeds the model's context "
+            "window size, the model will truncate the response to fit the context "
+            "window by dropping input items in the middle of the conversation."
+        ),
+        default=None,
+    )
+
+
 class ResponsesModel(KeyModel):
     needs_key = "openai"
     key_env_var = "OPENAI_API_KEY"
@@ -23,6 +79,7 @@ class ResponsesModel(KeyModel):
     def __init__(self, model_name, vision=False):
         self.model_id = "openai/" + model_name
         self.model_name = model_name
+        self.Options = BaseOptions
         if vision:
             self.attachment_types = {
                 "image/png",
@@ -77,6 +134,20 @@ class ResponsesModel(KeyModel):
             messages.append({"role": "user", "content": attachment_message})
         return messages
 
+    def build_kwargs(self, prompt):
+        kwargs = {"model": self.model_name}
+        for option in (
+            "max_output_tokens",
+            "temperature",
+            "top_p",
+            "store",
+            "truncation",
+        ):
+            value = getattr(prompt.options, option, None)
+            if value is not None:
+                kwargs[option] = value
+        return kwargs
+
     def execute(
         self,
         prompt: Prompt,
@@ -87,11 +158,9 @@ class ResponsesModel(KeyModel):
     ) -> Iterator[str]:
         client = openai.OpenAI(api_key=self.get_key(key))
         messages = self.build_messages(prompt, conversation)
-        kwargs = {
-            "model": self.model_name,
-            "input": messages,
-            "stream": stream,
-        }
+        kwargs = self.build_kwargs(prompt)
+        kwargs["input"] = messages
+        kwargs["stream"] = stream
         if stream:
             for event in client.responses.create(**kwargs):
                 if event.type == "response.output_text.delta":
