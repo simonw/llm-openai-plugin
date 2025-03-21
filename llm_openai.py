@@ -8,6 +8,7 @@ from llm import (
     Response,
     Conversation,
 )
+from llm.utils import simplify_usage_dict
 import openai
 from pydantic import Field, create_model
 from typing import AsyncGenerator, Iterator, Optional
@@ -141,6 +142,18 @@ class _SharedResponses:
     def __str__(self):
         return f"OpenAI: {self.model_id}"
 
+    def set_usage(self, response, usage):
+        if not usage:
+            return
+        if not isinstance(usage, dict):
+            usage = usage.model_dump()
+        input_tokens = usage.pop("input_tokens")
+        output_tokens = usage.pop("output_tokens")
+        usage.pop("total_tokens")
+        response.set_usage(
+            input=input_tokens, output=output_tokens, details=simplify_usage_dict(usage)
+        )
+
     def build_messages(self, prompt, conversation):
         messages = []
         current_system = None
@@ -218,10 +231,12 @@ class ResponsesModel(_SharedResponses, KeyModel):
                     yield event.delta
                 elif event.type == "response.completed":
                     response.response_json = event.response.model_dump()
+                    self.set_usage(response, event.response.usage)
         else:
             client_response = client.responses.create(**kwargs)
             yield client_response.output_text
             response.response_json = client_response.model_dump()
+            self.set_usage(response, client_response.usage)
 
 
 class AsyncResponsesModel(_SharedResponses, AsyncKeyModel):
@@ -244,10 +259,12 @@ class AsyncResponsesModel(_SharedResponses, AsyncKeyModel):
                     yield event.delta
                 elif event.type == "response.completed":
                     response.response_json = event.response.model_dump()
+                    self.set_usage(response, event.response.usage)
         else:
             client_response = await client.responses.create(**kwargs)
             yield client_response.output_text
             response.response_json = client_response.model_dump()
+            self.set_usage(response, client_response.usage)
 
 
 def _attachment(attachment, image_detail):

@@ -30,6 +30,8 @@ def test_options(options, snapshot, vcr):
     # Was the option sent to the API?
     api_input = json.loads(vcr.requests[0].body)
     assert all(item in api_input.items() for item in options.items())
+    usage = response.usage()
+    assert usage.input == 27
 
 
 @pytest.mark.asyncio
@@ -39,3 +41,6 @@ async def test_async_model(snapshot):
     response = await model.prompt("say hi", key=API_KEY)
     output = await response.text()
     assert output == snapshot
+    usage = await response.usage()
+    assert usage.input == 27
+    assert usage.output == 11
