@@ -3,7 +3,7 @@ import llm
 import os
 import pytest
 
-API_KEY = os.environ.get("PYTEST_OPENAI_API_KEY", None) or "sk-..."
+API_KEY = os.environ.get("PYTEST_OPENAI_API_KEY", None) or "badkey"
 
 
 def test_plugin_is_installed():
@@ -30,3 +30,12 @@ def test_options(options, snapshot, vcr):
     # Was the option sent to the API?
     api_input = json.loads(vcr.requests[0].body)
     assert all(item in api_input.items() for item in options.items())
+
+
+@pytest.mark.asyncio
+@pytest.mark.vcr
+async def test_async_model(snapshot):
+    model = llm.get_async_model("openai/gpt-4o-mini")
+    response = await model.prompt("say hi", key=API_KEY)
+    output = await response.text()
+    assert output == snapshot

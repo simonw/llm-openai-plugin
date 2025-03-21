@@ -1,4 +1,7 @@
 # serializer version: 1
+# name: test_async_model
+  'Hi there! How can I assist you today?'
+# ---
 # name: test_options[options0]
   'Hi there! How can I assist you today?'
 # ---
