@@ -5,10 +5,13 @@
 [![Tests](https://github.com/simonw/llm-openai-plugin/actions/workflows/test.yml/badge.svg)](https://github.com/simonw/llm-openai-plugin/actions/workflows/test.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/simonw/llm-openai-plugin/blob/main/LICENSE)
 
-LLM plugin for OpenAI
+[LLM](https://llm.datasette.io/) plugin for [OpenAI models](https://platform.openai.com/docs/models).
 
-> [!WARNING]  
-> This is a very early alpha.
+This plugin **is a preview**. LLM currently ships with OpenAI models as part of its default collection, implemented using the [Chat Completions API](https://platform.openai.com/docs/guides/responses-vs-chat-completions).
+
+This plugin implements those same models using the new [Responses API](https://platform.openai.com/docs/api-reference/responses).
+
+Currently the only reason to use this plugin over the LLM defaults is to access [o1-pro](https://platform.openai.com/docs/models/o1-pro), which can only be used via the Responses API.
 
 ## Installation
 
@@ -18,7 +21,13 @@ llm install llm-openai-plugin
 ```
 ## Usage
 
-Run this to see the models - they start with the `openai/` prefix:
+To run a prompt against `o1-pro` do this:
+
+```bash
+llm -m openai/o1-pro "Convince me that pelicans are the most noble of birds"
+```
+
+Run this to see a full list of models - they start with the `openai/` prefix:
 
 ```bash
 llm models -q openai/
