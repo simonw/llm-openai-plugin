@@ -1,5 +1,5 @@
 [project]
-name = "llm-openai"
+name = "llm-openai-plugin"
 version = "0.1a0"
 description = "LLM plugin for OpenAI"
 readme = "README.md"
@@ -19,10 +19,10 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project.urls]
-Homepage = "https://github.com/simonw/llm-openai"
-Changelog = "https://github.com/simonw/llm-openai/releases"
-Issues = "https://github.com/simonw/llm-openai/issues"
-CI = "https://github.com/simonw/llm-openai/actions"
+Homepage = "https://github.com/simonw/llm-openai-plugin"
+Changelog = "https://github.com/simonw/llm-openai-plugin/releases"
+Issues = "https://github.com/simonw/llm-openai-plugin/issues"
+CI = "https://github.com/simonw/llm-openai-plugin/actions"
 
 [project.entry-points.llm]
 openai = "llm_openai"
