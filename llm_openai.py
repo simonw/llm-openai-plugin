@@ -9,7 +9,7 @@ from llm import (
     Conversation,
 )
 import openai
-from pydantic import Field
+from pydantic import Field, create_model
 from typing import AsyncGenerator, Iterator, Optional
 
 
@@ -26,6 +26,12 @@ def register_models(register):
 class TruncationEnum(str, Enum):
     auto = "auto"
     disabled = "disabled"
+
+
+class ImageDetailEnum(str, Enum):
+    low = "low"
+    high = "high"
+    auto = "auto"
 
 
 class BaseOptions(Options):
@@ -76,13 +82,23 @@ class BaseOptions(Options):
     )
 
 
+class VisionOptions(Options):
+    image_detail: Optional[ImageDetailEnum] = Field(
+        description=(
+            "low = fixed tokens per image. high = more tokens for larger images. auto = model decides. Default is low."
+        ),
+        default=None,
+    )
+
+
 class _SharedResponses:
     needs_key = "openai"
     key_env_var = "OPENAI_API_KEY"
 
-    def __init__(self, model_name, vision=False):
+    def __init__(self, model_name, vision=False, streaming=True):
         self.model_id = "openai/" + model_name
         self.model_name = model_name
+        self.can_stream = streaming
         self.Options = BaseOptions
         if vision:
             self.attachment_types = {
@@ -92,6 +108,7 @@ class _SharedResponses:
                 "image/gif",
                 "application/pdf",
             }
+            self.Options = combine_options(BaseOptions, VisionOptions)
 
     def __str__(self):
         return f"OpenAI Responses: {self.model_id}"
@@ -99,6 +116,7 @@ class _SharedResponses:
     def build_messages(self, prompt, conversation):
         messages = []
         current_system = None
+        image_detail = prompt.options.image_detail or "low"
         if conversation is not None:
             for prev_response in conversation.responses:
                 if (
@@ -116,7 +134,7 @@ class _SharedResponses:
                             {"type": "input_text", "text": prev_response.prompt.prompt}
                         )
                     for attachment in prev_response.attachments:
-                        attachment_message.append(_attachment(attachment))
+                        attachment_message.append(_attachment(attachment, image_detail))
                     messages.append({"role": "user", "content": attachment_message})
                 else:
                     messages.append(
@@ -134,7 +152,7 @@ class _SharedResponses:
             if prompt.prompt:
                 attachment_message.append({"type": "input_text", "text": prompt.prompt})
             for attachment in prompt.attachments:
-                attachment_message.append(_attachment(attachment))
+                attachment_message.append(_attachment(attachment, image_detail))
             messages.append({"role": "user", "content": attachment_message})
         return messages
 
@@ -171,7 +189,7 @@ class ResponsesModel(_SharedResponses, KeyModel):
                 if event.type == "response.output_text.delta":
                     yield event.delta
                 elif event.type == "response.completed":
-                    response.response_json = event.response.output
+                    response.response_json = event.response.model_dump()
         else:
             client_response = client.responses.create(**kwargs)
             yield client_response.output_text
@@ -197,14 +215,14 @@ class AsyncResponsesModel(_SharedResponses, AsyncKeyModel):
                 if event.type == "response.output_text.delta":
                     yield event.delta
                 elif event.type == "response.completed":
-                    response.response_json = event.response.output
+                    response.response_json = event.response.model_dump()
         else:
             client_response = await client.responses.create(**kwargs)
             yield client_response.output_text
             response.response_json = client_response.model_dump()
 
 
-def _attachment(attachment):
+def _attachment(attachment, image_detail):
     url = attachment.url
     base64_content = ""
     if not url or attachment.resolve_type().startswith("audio/"):
@@ -221,7 +239,7 @@ def _attachment(attachment):
             },
         }
     if attachment.resolve_type().startswith("image/"):
-        return {"type": "input_image", "image_url": url, "detail": "low"}
+        return {"type": "input_image", "image_url": url, "detail": image_detail}
     else:
         format_ = "wav" if attachment.resolve_type() == "audio/wav" else "mp3"
         return {
@@ -231,3 +249,8 @@ def _attachment(attachment):
                 "format": format_,
             },
         }
+
+
+def combine_options(*mixins):
+    # reversed() here makes --options display order correct
+    return create_model("CombinedOptions", __base__=tuple(reversed(mixins)))
