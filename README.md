@@ -24,6 +24,29 @@ Run this to see the models - they start with the `openai/` prefix:
 llm models -q openai/
 ```
 
+Here's the output of that command:
+
+<!-- [[[cog
+import cog
+from llm import cli
+from click.testing import CliRunner
+runner = CliRunner()
+result = runner.invoke(cli.cli, ["models", "-q", "openai/"])
+cog.out(
+    "```\n{}\n```".format(result.output.strip())
+)
+]]] -->
+```
+OpenAI: openai/gpt-4o
+OpenAI: openai/gpt-4o-mini
+OpenAI: openai/o3-mini
+OpenAI: openai/o1-mini
+OpenAI: openai/o1
+OpenAI: openai/o1-pro
+```
+<!-- [[[end]]] -->
+Add `--options` to see a full list of options that can be provided to each model.
+
 ## Development
 
 To set up this plugin locally, first checkout the code. Then create a new virtual environment:

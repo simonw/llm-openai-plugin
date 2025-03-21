@@ -139,7 +139,7 @@ class _SharedResponses:
         self.Options = combine_options(*options)
 
     def __str__(self):
-        return f"OpenAI Responses: {self.model_id}"
+        return f"OpenAI: {self.model_id}"
 
     def build_messages(self, prompt, conversation):
         messages = []
