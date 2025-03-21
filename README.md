@@ -40,3 +40,11 @@ To run the tests:
 ```bash
 python -m pytest
 ```
+
+This project uses [pytest-recording](https://github.com/kiwicom/pytest-recording) to record OpenAI API responses for the tests, and [syrupy](https://github.com/syrupy-project/syrupy) to capture snapshots of their results.
+
+If you add a new test that calls the API you can capture the API response and snapshot like this:
+```bash
+PYTEST_OPENAI_API_KEY="$(llm keys get openai)" pytest --record-mode once --snapshot-update
+```
+Then review the new snapshots in `tests/__snapshots__/` to make sure they look correct.

@@ -28,4 +28,4 @@ CI = "https://github.com/simonw/llm-openai-plugin/actions"
 openai = "llm_openai"
 
 [project.optional-dependencies]
-test = ["pytest"]
+test = ["pytest", "pytest-recording", "syrupy"]

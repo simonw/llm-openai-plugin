@@ -1,6 +1,32 @@
+import json
 import llm
+import os
+import pytest
+
+API_KEY = os.environ.get("PYTEST_OPENAI_API_KEY", None) or "sk-..."
 
 
 def test_plugin_is_installed():
     model_ids = [model.model_id for model in llm.get_models()]
     assert "openai/gpt-4o-mini" in model_ids
+
+
+@pytest.mark.parametrize(
+    "options",
+    (
+        {"max_output_tokens": 24},
+        {"temperature": 0.5},
+        {"top_p": 0.5},
+        # store and truncation
+        {"store": True},
+        {"truncation": "auto"},
+    ),
+)
+@pytest.mark.vcr
+def test_options(options, snapshot, vcr):
+    model = llm.get_model("openai/gpt-4o-mini")
+    response = model.prompt("say hi", key=API_KEY, stream=False, **options)
+    assert response.text() == snapshot
+    # Was the option sent to the API?
+    api_input = json.loads(vcr.requests[0].body)
+    assert all(item in api_input.items() for item in options.items())
