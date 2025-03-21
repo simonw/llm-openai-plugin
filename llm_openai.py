@@ -225,6 +225,18 @@ class _SharedResponses:
             }
         return kwargs
 
+    def _handle_event(self, event, response):
+        if event.type == "response.output_text.delta":
+            return event.delta
+        elif event.type == "response.completed":
+            response.response_json = event.response.model_dump()
+            self.set_usage(response, event.response.usage)
+            return None
+
+    def _finish_non_streaming_response(self, response, client_response):
+        response.response_json = client_response.model_dump()
+        self.set_usage(response, client_response.usage)
+
 
 class ResponsesModel(_SharedResponses, KeyModel):
     def execute(
@@ -241,16 +253,13 @@ class ResponsesModel(_SharedResponses, KeyModel):
         kwargs["stream"] = stream
         if stream:
             for event in client.responses.create(**kwargs):
-                if event.type == "response.output_text.delta":
-                    yield event.delta
-                elif event.type == "response.completed":
-                    response.response_json = event.response.model_dump()
-                    self.set_usage(response, event.response.usage)
+                delta = self._handle_event(event, response)
+                if delta is not None:
+                    yield delta
         else:
             client_response = client.responses.create(**kwargs)
             yield client_response.output_text
-            response.response_json = client_response.model_dump()
-            self.set_usage(response, client_response.usage)
+            self._finish_non_streaming_response(response, client_response)
 
 
 class AsyncResponsesModel(_SharedResponses, AsyncKeyModel):
@@ -267,18 +276,14 @@ class AsyncResponsesModel(_SharedResponses, AsyncKeyModel):
         kwargs = self.build_kwargs(prompt, messages)
         kwargs["stream"] = stream
         if stream:
-            completion = await client.responses.create(**kwargs)
-            async for event in completion:
-                if event.type == "response.output_text.delta":
-                    yield event.delta
-                elif event.type == "response.completed":
-                    response.response_json = event.response.model_dump()
-                    self.set_usage(response, event.response.usage)
+            async for event in await client.responses.create(**kwargs):
+                delta = self._handle_event(event, response)
+                if delta is not None:
+                    yield delta
         else:
             client_response = await client.responses.create(**kwargs)
             yield client_response.output_text
-            response.response_json = client_response.model_dump()
-            self.set_usage(response, client_response.usage)
+            self._finish_non_streaming_response(response, client_response)
 
 
 def _attachment(attachment, image_detail):
