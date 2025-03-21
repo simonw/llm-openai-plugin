@@ -1,6 +1,7 @@
 import json
 import llm
 import os
+from pydantic import BaseModel
 import pytest
 
 API_KEY = os.environ.get("PYTEST_OPENAI_API_KEY", None) or "badkey"
@@ -43,3 +44,18 @@ async def test_async_model(snapshot):
     usage = await response.usage()
     assert usage.input == 27
     assert usage.output == 11
+
+
+class Dog(BaseModel):
+    name: str
+    age: int
+    bio: str
+
+
+@pytest.mark.asyncio
+@pytest.mark.vcr
+async def test_async_model_schema(snapshot):
+    model = llm.get_async_model("openai/gpt-4o-mini")
+    response = await model.prompt("invent a dog", key=API_KEY, schema=Dog)
+    output = await response.text()
+    assert json.loads(output) == snapshot

@@ -20,7 +20,7 @@ def register_models(register):
         "gpt-4o": {"vision": True},
         "gpt-4o-mini": {"vision": True},
         "o3-mini": {"reasoning": True},
-        "o1-mini": {"reasoning": True},
+        "o1-mini": {"reasoning": True, "schemas": False},
         "o1": {"reasoning": True, "vision": True},
         "o1-pro": {"reasoning": True, "vision": True, "streaming": False},
     }
@@ -121,11 +121,15 @@ class _SharedResponses:
     needs_key = "openai"
     key_env_var = "OPENAI_API_KEY"
 
-    def __init__(self, model_name, vision=False, streaming=True, reasoning=False):
+    def __init__(
+        self, model_name, vision=False, streaming=True, schemas=True, reasoning=False
+    ):
         self.model_id = "openai/" + model_name
         self.model_name = model_name
         self.can_stream = streaming
+        self.supports_schema = schemas
         options = [BaseOptions]
+        self.vision = vision
         if vision:
             self.attachment_types = {
                 "image/png",
@@ -157,7 +161,9 @@ class _SharedResponses:
     def build_messages(self, prompt, conversation):
         messages = []
         current_system = None
-        image_detail = prompt.options.image_detail or "low"
+        image_detail = None
+        if self.vision:
+            image_detail = prompt.options.image_detail or "low"
         if conversation is not None:
             for prev_response in conversation.responses:
                 if (
@@ -209,6 +215,14 @@ class _SharedResponses:
             value = getattr(prompt.options, option, None)
             if value is not None:
                 kwargs[option] = value
+        if self.supports_schema and prompt.schema:
+            kwargs["text"] = {
+                "format": {
+                    "type": "json_schema",
+                    "name": "output",
+                    "schema": additional_properties_false(prompt.schema),
+                }
+            }
         return kwargs
 
 
@@ -299,3 +313,32 @@ def _attachment(attachment, image_detail):
 def combine_options(*mixins):
     # reversed() here makes --options display order correct
     return create_model("CombinedOptions", __base__=tuple(reversed(mixins)))
+
+
+def additional_properties_false(input_dict: dict) -> dict:
+    """
+    Recursively process a dictionary and add 'additionalProperties': False
+    to any dictionary that has a 'properties' key.
+
+    Args:
+        input_dict (dict): The input dictionary to process
+
+    Returns:
+        dict: A new dictionary with 'additionalProperties': False added where needed
+    """
+    result = {}
+    for key, value in input_dict.items():
+        if isinstance(value, dict):
+            result[key] = additional_properties_false(value)
+        elif isinstance(value, list):
+            result[key] = [
+                additional_properties_false(item) if isinstance(item, dict) else item
+                for item in value
+            ]
+        else:
+            result[key] = value
+
+    if "properties" in input_dict:
+        result["additionalProperties"] = False
+
+    return result
