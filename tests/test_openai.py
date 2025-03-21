@@ -17,7 +17,6 @@ def test_plugin_is_installed():
         {"max_output_tokens": 24},
         {"temperature": 0.5},
         {"top_p": 0.5},
-        # store and truncation
         {"store": True},
         {"truncation": "auto"},
     ),
