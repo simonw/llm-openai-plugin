@@ -158,7 +158,7 @@ class _SharedResponses:
             input=input_tokens, output=output_tokens, details=simplify_usage_dict(usage)
         )
 
-    def build_messages(self, prompt, conversation):
+    def _build_messages(self, prompt, conversation):
         messages = []
         current_system = None
         image_detail = None
@@ -203,7 +203,8 @@ class _SharedResponses:
             messages.append({"role": "user", "content": attachment_message})
         return messages
 
-    def build_kwargs(self, prompt, messages):
+    def _build_kwargs(self, prompt, conversation):
+        messages = self._build_messages(prompt, conversation)
         kwargs = {"model": self.model_name, "input": messages}
         for option in (
             "max_output_tokens",
@@ -248,8 +249,7 @@ class ResponsesModel(_SharedResponses, KeyModel):
         key: Optional[str],
     ) -> Iterator[str]:
         client = openai.OpenAI(api_key=self.get_key(key))
-        messages = self.build_messages(prompt, conversation)
-        kwargs = self.build_kwargs(prompt, messages)
+        kwargs = self._build_kwargs(prompt, conversation)
         kwargs["stream"] = stream
         if stream:
             for event in client.responses.create(**kwargs):
@@ -272,8 +272,7 @@ class AsyncResponsesModel(_SharedResponses, AsyncKeyModel):
         key: Optional[str],
     ) -> AsyncGenerator[str, None]:
         client = openai.AsyncOpenAI(api_key=self.get_key(key))
-        messages = self.build_messages(prompt, conversation)
-        kwargs = self.build_kwargs(prompt, messages)
+        kwargs = self._build_kwargs(prompt, conversation)
         kwargs["stream"] = stream
         if stream:
             async for event in await client.responses.create(**kwargs):
