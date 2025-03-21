@@ -1,5 +1,6 @@
 from enum import Enum
 from llm import (
+    AsyncKeyModel,
     KeyModel,
     hookimpl,
     Options,
@@ -9,14 +10,17 @@ from llm import (
 )
 import openai
 from pydantic import Field
-from typing import Iterator, Optional
+from typing import AsyncGenerator, Iterator, Optional
 
 
 @hookimpl
 def register_models(register):
     # GPT-4o family
     for model_id in ("gpt-4o", "gpt-4o-mini"):
-        register(ResponsesModel(model_id, vision=True))
+        register(
+            ResponsesModel(model_id, vision=True),
+            AsyncResponsesModel(model_id, vision=True),
+        )
 
 
 class TruncationEnum(str, Enum):
@@ -72,7 +76,7 @@ class BaseOptions(Options):
     )
 
 
-class ResponsesModel(KeyModel):
+class _SharedResponses:
     needs_key = "openai"
     key_env_var = "OPENAI_API_KEY"
 
@@ -134,8 +138,8 @@ class ResponsesModel(KeyModel):
             messages.append({"role": "user", "content": attachment_message})
         return messages
 
-    def build_kwargs(self, prompt):
-        kwargs = {"model": self.model_name}
+    def build_kwargs(self, prompt, messages):
+        kwargs = {"model": self.model_name, "input": messages}
         for option in (
             "max_output_tokens",
             "temperature",
@@ -148,6 +152,8 @@ class ResponsesModel(KeyModel):
                 kwargs[option] = value
         return kwargs
 
+
+class ResponsesModel(_SharedResponses, KeyModel):
     def execute(
         self,
         prompt: Prompt,
@@ -158,8 +164,7 @@ class ResponsesModel(KeyModel):
     ) -> Iterator[str]:
         client = openai.OpenAI(api_key=self.get_key(key))
         messages = self.build_messages(prompt, conversation)
-        kwargs = self.build_kwargs(prompt)
-        kwargs["input"] = messages
+        kwargs = self.build_kwargs(prompt, messages)
         kwargs["stream"] = stream
         if stream:
             for event in client.responses.create(**kwargs):
@@ -169,6 +174,32 @@ class ResponsesModel(KeyModel):
                     response.response_json = event.response.output
         else:
             client_response = client.responses.create(**kwargs)
+            yield client_response.output_text
+            response.response_json = client_response.model_dump()
+
+
+class AsyncResponsesModel(_SharedResponses, AsyncKeyModel):
+    async def execute(
+        self,
+        prompt: Prompt,
+        stream: bool,
+        response: Response,
+        conversation: Optional[Conversation],
+        key: Optional[str],
+    ) -> AsyncGenerator[str, None]:
+        client = openai.AsyncOpenAI(api_key=self.get_key(key))
+        messages = self.build_messages(prompt, conversation)
+        kwargs = self.build_kwargs(prompt, messages)
+        kwargs["stream"] = stream
+        if stream:
+            completion = await client.responses.create(**kwargs)
+            async for event in completion:
+                if event.type == "response.output_text.delta":
+                    yield event.delta
+                elif event.type == "response.completed":
+                    response.response_json = event.response.output
+        else:
+            client_response = await client.responses.create(**kwargs)
             yield client_response.output_text
             response.response_json = client_response.model_dump()
 
