@@ -19,6 +19,8 @@ def register_models(register):
     models = {
         "gpt-4o": {"vision": True},
         "gpt-4o-mini": {"vision": True},
+        "gpt-4.5-preview": {"vision": True},
+        "gpt-4.5-preview-2025-02-27": {"vision": True},
         "o3-mini": {"reasoning": True},
         "o1-mini": {"reasoning": True, "schemas": False},
         "o1": {"reasoning": True, "vision": True},
