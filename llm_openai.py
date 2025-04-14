@@ -25,6 +25,13 @@ def register_models(register):
         "o1-mini": {"reasoning": True, "schemas": False},
         "o1": {"reasoning": True, "vision": True},
         "o1-pro": {"reasoning": True, "vision": True, "streaming": False},
+        # GPT-4.1 (all have vision: true, streaming: true)
+        "gpt-4.1": {"vision": True},
+        "gpt-4.1-2025-04-14": {"vision": True},
+        "gpt-4.1-mini": {"vision": True},
+        "gpt-4.1-mini-2025-04-14": {"vision": True},
+        "gpt-4.1-nano": {"vision": True},
+        "gpt-4.1-nano-2025-04-14": {"vision": True},
     }
     for model_id, options in models.items():
         register(

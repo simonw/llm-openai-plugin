@@ -48,10 +48,18 @@ cog.out(
 ```
 OpenAI: openai/gpt-4o
 OpenAI: openai/gpt-4o-mini
+OpenAI: openai/gpt-4.5-preview
+OpenAI: openai/gpt-4.5-preview-2025-02-27
 OpenAI: openai/o3-mini
 OpenAI: openai/o1-mini
 OpenAI: openai/o1
 OpenAI: openai/o1-pro
+OpenAI: openai/gpt-4.1
+OpenAI: openai/gpt-4.1-2025-04-14
+OpenAI: openai/gpt-4.1-mini
+OpenAI: openai/gpt-4.1-mini-2025-04-14
+OpenAI: openai/gpt-4.1-nano
+OpenAI: openai/gpt-4.1-nano-2025-04-14
 ```
 <!-- [[[end]]] -->
 Add `--options` to see a full list of options that can be provided to each model.
