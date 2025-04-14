@@ -1,6 +1,6 @@
 [project]
 name = "llm-openai-plugin"
-version = "0.2"
+version = "0.2.1"
 description = "LLM plugin for OpenAI"
 readme = "README.md"
 authors = [{name = "Simon Willison"}]
