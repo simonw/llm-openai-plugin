@@ -304,11 +304,9 @@ def _attachment(attachment, image_detail):
         if not base64_content:
             base64_content = attachment.base64_content()
         return {
-            "type": "file",
-            "file": {
-                "filename": f"{attachment.id()}.pdf",
-                "file_data": f"data:application/pdf;base64,{base64_content}",
-            },
+            "type": "input_file",
+            "filename": f"{attachment.id()}.pdf",
+            "file_data": f"data:application/pdf;base64,{base64_content}",
         }
     if attachment.resolve_type().startswith("image/"):
         return {"type": "input_image", "image_url": url, "detail": image_detail}
