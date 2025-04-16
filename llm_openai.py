@@ -32,6 +32,13 @@ def register_models(register):
         "gpt-4.1-mini-2025-04-14": {"vision": True},
         "gpt-4.1-nano": {"vision": True},
         "gpt-4.1-nano-2025-04-14": {"vision": True},
+        # April 16th 2025
+        "o3": {"vision": True, "reasoning": True, "streaming": False},
+        "o3-2025-04-16": {"vision": True, "reasoning": True, "streaming": False},
+        "o3-streaming": {"vision": True, "reasoning": True},
+        "o3-2025-04-16-streaming": {"vision": True, "reasoning": True},
+        "o4-mini": {"vision": True, "reasoning": True},
+        "o4-mini-2025-04-16": {"vision": True, "reasoning": True},
     }
     for model_id, options in models.items():
         register(

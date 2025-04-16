@@ -60,9 +60,17 @@ OpenAI: openai/gpt-4.1-mini
 OpenAI: openai/gpt-4.1-mini-2025-04-14
 OpenAI: openai/gpt-4.1-nano
 OpenAI: openai/gpt-4.1-nano-2025-04-14
+OpenAI: openai/o3
+OpenAI: openai/o3-2025-04-16
+OpenAI: openai/o3-streaming
+OpenAI: openai/o3-2025-04-16-streaming
+OpenAI: openai/o4-mini
+OpenAI: openai/o4-mini-2025-04-16
 ```
 <!-- [[[end]]] -->
 Add `--options` to see a full list of options that can be provided to each model.
+
+The `o3-streaming` model ID exists because o3 currently requires a verified organization in order to support streaming. If you have a verified organization you can use `o3-streaming` - everyone else should use `o3`.
 
 ## Development
 
