@@ -141,6 +141,9 @@ class _SharedResponses:
         self, model_name, vision=False, streaming=True, schemas=True, reasoning=False
     ):
         self.model_id = "openai/" + model_name
+        streaming_suffix = "-streaming"
+        if model_name.endswith(streaming_suffix):
+            model_name = model_name[: -len(streaming_suffix)]
         self.model_name = model_name
         self.can_stream = streaming
         self.supports_schema = schemas
