@@ -26,10 +26,10 @@ def register_models(register):
         "o1": {"reasoning": True, "vision": True},
         "o1-pro": {"reasoning": True, "vision": True, "streaming": False},
         # GPT-4.1 (all have vision: true, streaming: true)
-        "gpt-4.1": {"vision": True},
-        "gpt-4.1-2025-04-14": {"vision": True},
-        "gpt-4.1-mini": {"vision": True},
-        "gpt-4.1-mini-2025-04-14": {"vision": True},
+        "gpt-4.1": {"vision": True, "search": True},
+        "gpt-4.1-2025-04-14": {"vision": True, "search": True},
+        "gpt-4.1-mini": {"vision": True, "search": True},
+        "gpt-4.1-mini-2025-04-14": {"vision": True, "search": True},
         "gpt-4.1-nano": {"vision": True},
         "gpt-4.1-nano-2025-04-14": {"vision": True},
         # April 16th 2025
@@ -37,8 +37,8 @@ def register_models(register):
         "o3-2025-04-16": {"vision": True, "reasoning": True, "streaming": False},
         "o3-streaming": {"vision": True, "reasoning": True},
         "o3-2025-04-16-streaming": {"vision": True, "reasoning": True},
-        "o4-mini": {"vision": True, "reasoning": True},
-        "o4-mini-2025-04-16": {"vision": True, "reasoning": True},
+        "o4-mini": {"vision": True, "reasoning": True, "search": True},
+        "o4-mini-2025-04-16": {"vision": True, "reasoning": True, "search": True},
     }
     for model_id, options in models.items():
         register(
@@ -59,6 +59,18 @@ class ImageDetailEnum(str, Enum):
 
 
 class ReasoningEffortEnum(str, Enum):
+    low = "low"
+    medium = "medium"
+    high = "high"
+
+
+class ReasoningSummaryEnum(str, Enum):
+    auto = "auto"
+    concise = "concise"
+    detailed = "detailed"
+
+
+class SearchContextSizeEnum(str, Enum):
     low = "low"
     medium = "medium"
     high = "high"
@@ -131,6 +143,30 @@ class ReasoningOptions(Options):
         ),
         default=None,
     )
+    reasoning_summary: Optional[ReasoningSummaryEnum] = Field(
+        description=(
+            "A summary of the reasoning performed by the model. This can be useful for "
+            "debugging and understanding the model's reasoning process."
+        ),
+        default=None,
+    )
+
+
+class SearchOptions(Options):
+    web_search_preview: Optional[bool] = Field(
+        description=(
+            "Allow models to search the web for the latest information before generating "
+            "a response."
+        ),
+        default=None,
+    )
+    search_context_size: Optional[SearchContextSizeEnum] = Field(
+        description=(
+            "How much context is retrieved from the web to help the tool formulate "
+            'a response. "low", "medium" or "high". Default is medium.'
+        ),
+        default=None,
+    )
 
 
 class _SharedResponses:
@@ -138,7 +174,13 @@ class _SharedResponses:
     key_env_var = "OPENAI_API_KEY"
 
     def __init__(
-        self, model_name, vision=False, streaming=True, schemas=True, reasoning=False
+        self,
+        model_name,
+        vision=False,
+        streaming=True,
+        schemas=True,
+        reasoning=False,
+        search=False,
     ):
         self.model_id = "openai/" + model_name
         streaming_suffix = "-streaming"
@@ -149,6 +191,7 @@ class _SharedResponses:
         self.supports_schema = schemas
         options = [BaseOptions]
         self.vision = vision
+        self.search = search
         if vision:
             self.attachment_types = {
                 "image/png",
@@ -158,6 +201,9 @@ class _SharedResponses:
                 "application/pdf",
             }
             options.append(VisionOptions)
+        if search:
+            options.append(SearchOptions)
+        self.supports_reasoning = reasoning
         if reasoning:
             options.append(ReasoningOptions)
         self.Options = combine_options(*options)
@@ -243,6 +289,24 @@ class _SharedResponses:
                     "schema": additional_properties_false(prompt.schema),
                 }
             }
+        if self.supports_reasoning and (
+            prompt.options.reasoning_effort or prompt.options.reasoning_summary
+        ):
+            kwargs["reasoning"] = {}
+            if prompt.options.reasoning_effort:
+                kwargs["reasoning"]["effort"] = prompt.options.reasoning_effort
+            if prompt.options.reasoning_summary:
+                kwargs["reasoning"]["summary"] = prompt.options.reasoning_summary
+        tools = []
+        if self.search and prompt.options.web_search_preview:
+            search_tool = {
+                "type": "web_search",
+            }
+            if prompt.options.search_context_size:
+                search_tool["search_context_size"] = prompt.options.search_context_size
+            tools.append(search_tool)
+        if tools:
+            kwargs["tools"] = tools
         return kwargs
 
     def _handle_event(self, event, response):
