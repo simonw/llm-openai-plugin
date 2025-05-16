@@ -39,6 +39,8 @@ def register_models(register):
         "o3-2025-04-16-streaming": {"vision": True, "reasoning": True},
         "o4-mini": {"vision": True, "reasoning": True},
         "o4-mini-2025-04-16": {"vision": True, "reasoning": True},
+        # May 16th 2025
+        "codex-mini-latest": {"vision": True, "reasoning": True},
     }
     for model_id, options in models.items():
         register(
