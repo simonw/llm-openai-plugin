@@ -51,9 +51,17 @@ OpenAI: openai/gpt-4o-mini
 OpenAI: openai/gpt-4.5-preview
 OpenAI: openai/gpt-4.5-preview-2025-02-27
 OpenAI: openai/o3-mini
+OpenAI: openai/o3-mini-high
+OpenAI: openai/o3-mini-low
 OpenAI: openai/o1-mini
+OpenAI: openai/o1-mini-high
+OpenAI: openai/o1-mini-low
 OpenAI: openai/o1
+OpenAI: openai/o1-high
+OpenAI: openai/o1-low
 OpenAI: openai/o1-pro
+OpenAI: openai/o1-pro-high
+OpenAI: openai/o1-pro-low
 OpenAI: openai/gpt-4.1
 OpenAI: openai/gpt-4.1-2025-04-14
 OpenAI: openai/gpt-4.1-mini
@@ -61,12 +69,26 @@ OpenAI: openai/gpt-4.1-mini-2025-04-14
 OpenAI: openai/gpt-4.1-nano
 OpenAI: openai/gpt-4.1-nano-2025-04-14
 OpenAI: openai/o3
+OpenAI: openai/o3-high
+OpenAI: openai/o3-low
 OpenAI: openai/o3-2025-04-16
+OpenAI: openai/o3-2025-04-16-high
+OpenAI: openai/o3-2025-04-16-low
 OpenAI: openai/o3-streaming
+OpenAI: openai/o3-streaming-high
+OpenAI: openai/o3-streaming-low
 OpenAI: openai/o3-2025-04-16-streaming
+OpenAI: openai/o3-2025-04-16-streaming-high
+OpenAI: openai/o3-2025-04-16-streaming-low
 OpenAI: openai/o4-mini
+OpenAI: openai/o4-mini-high
+OpenAI: openai/o4-mini-low
 OpenAI: openai/o4-mini-2025-04-16
+OpenAI: openai/o4-mini-2025-04-16-high
+OpenAI: openai/o4-mini-2025-04-16-low
 OpenAI: openai/codex-mini-latest
+OpenAI: openai/codex-mini-latest-high
+OpenAI: openai/codex-mini-latest-low
 ```
 <!-- [[[end]]] -->
 Add `--options` to see a full list of options that can be provided to each model.

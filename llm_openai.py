@@ -47,6 +47,20 @@ def register_models(register):
             ResponsesModel(model_id, **options),
             AsyncResponsesModel(model_id, **options),
         )
+        if options.get("reasoning"):
+            for effort in (ReasoningEffortEnum.high, ReasoningEffortEnum.low):
+                register(
+                    ResponsesModel(
+                        f"{model_id}-{effort.value}",
+                        default_options={"reasoning_effort": effort},
+                        **options,
+                    ),
+                    AsyncResponsesModel(
+                        f"{model_id}-{effort.value}",
+                        default_options={"reasoning_effort": effort},
+                        **options,
+                    ),
+                )
 
 
 class TruncationEnum(str, Enum):
@@ -140,7 +154,13 @@ class _SharedResponses:
     key_env_var = "OPENAI_API_KEY"
 
     def __init__(
-        self, model_name, vision=False, streaming=True, schemas=True, reasoning=False
+        self,
+        model_name,
+        vision=False,
+        streaming=True,
+        schemas=True,
+        reasoning=False,
+        default_options=None,
     ):
         self.model_id = "openai/" + model_name
         streaming_suffix = "-streaming"
@@ -162,6 +182,10 @@ class _SharedResponses:
             options.append(VisionOptions)
         if reasoning:
             options.append(ReasoningOptions)
+        self.option_defaults = default_options or {}
+        if self.option_defaults:
+            default_mixin = _option_defaults_mixin(options, self.option_defaults)
+            options.append(default_mixin)
         self.Options = combine_options(*options)
 
     def __str__(self):
@@ -233,8 +257,11 @@ class _SharedResponses:
             "top_p",
             "store",
             "truncation",
+            "reasoning_effort",
         ):
             value = getattr(prompt.options, option, None)
+            if value is None:
+                value = self.option_defaults.get(option)
             if value is not None:
                 kwargs[option] = value
         if self.supports_schema and prompt.schema:
@@ -331,6 +358,19 @@ def _attachment(attachment, image_detail):
                 "format": format_,
             },
         }
+
+
+def _option_defaults_mixin(mixins, defaults):
+    fields = {}
+    for name, value in defaults.items():
+        for mixin in mixins:
+            if hasattr(mixin, "model_fields") and name in mixin.model_fields:
+                field_type = mixin.model_fields[name].annotation
+                fields[name] = (field_type, Field(default=value))
+                break
+    if not fields:
+        return Options
+    return create_model("OptionDefaults", __base__=Options, **fields)
 
 
 def combine_options(*mixins):
