@@ -67,6 +67,7 @@ OpenAI: openai/o3-2025-04-16-streaming
 OpenAI: openai/o4-mini
 OpenAI: openai/o4-mini-2025-04-16
 OpenAI: openai/codex-mini-latest
+OpenAI: openai/o3-pro
 ```
 <!-- [[[end]]] -->
 Add `--options` to see a full list of options that can be provided to each model.
