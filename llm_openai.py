@@ -43,6 +43,13 @@ def register_models(register):
         "codex-mini-latest": {"vision": True, "reasoning": True},
         # June 10th 2025
         "o3-pro": {"vision": True, "reasoning": True},
+        # GPT-5, August 7th 2025
+        "gpt-5": {"vision": True, "reasoning": True},
+        "gpt-5-mini": {"vision": True, "reasoning": True},
+        "gpt-5-nano": {"vision": True, "reasoning": True},
+        "gpt-5-2025-08-07": {"vision": True, "reasoning": True},
+        "gpt-5-mini-2025-08-07": {"vision": True, "reasoning": True},
+        "gpt-5-nano-2025-08-07": {"vision": True, "reasoning": True},
     }
     for model_id, options in models.items():
         register(
