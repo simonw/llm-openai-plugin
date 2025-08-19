@@ -68,6 +68,12 @@ OpenAI: openai/o4-mini
 OpenAI: openai/o4-mini-2025-04-16
 OpenAI: openai/codex-mini-latest
 OpenAI: openai/o3-pro
+OpenAI: openai/gpt-5
+OpenAI: openai/gpt-5-mini
+OpenAI: openai/gpt-5-nano
+OpenAI: openai/gpt-5-2025-08-07
+OpenAI: openai/gpt-5-mini-2025-08-07
+OpenAI: openai/gpt-5-nano-2025-08-07
 ```
 <!-- [[[end]]] -->
 Add `--options` to see a full list of options that can be provided to each model.
@@ -98,3 +104,12 @@ If you add a new test that calls the API you can capture the API response and sn
 PYTEST_OPENAI_API_KEY="$(llm keys get openai)" pytest --record-mode once --snapshot-update
 ```
 Then review the new snapshots in `tests/__snapshots__/` to make sure they look correct.
+
+#### README
+
+The list of plugins in the README is kept up to date using `cog`. To regenerate:
+
+```bash
+pip install cogapp
+cog -r README.md
+```
