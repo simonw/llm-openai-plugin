@@ -74,6 +74,11 @@ Add `--options` to see a full list of options that can be provided to each model
 
 The `o3-streaming` model ID exists because o3 currently requires a verified organization in order to support streaming. If you have a verified organization you can use `o3-streaming` - everyone else should use `o3`.
 
+For GPT-5, the model names in the API do not match the names in the UI; `gpt-5`
+is the name of the "thinking" model, and `gpt-5-chat-latest` is the model that
+you would interact with by default at chatgpt.com. For more [see the OpenAI
+model notes](https://platform.openai.com/docs/guides/latest-model).
+
 ## Development
 
 To set up this plugin locally, first checkout the code. Then create a new virtual environment:
