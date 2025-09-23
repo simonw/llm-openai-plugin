@@ -72,6 +72,7 @@ def test_tools(snapshot):
     chain_response = model.chain(
         "Call simple_tool passing 5",
         tools=[simple_tool],
+        key=API_KEY
     )
     output = chain_response.text()
     assert output == snapshot
