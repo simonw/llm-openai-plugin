@@ -24,3 +24,11 @@
 # name: test_options[options4]
   'Hi there! How can I assist you today?'
 # ---
+# name: test_tools
+  '''
+  I called simple_tool with 5; it returned:
+  "This is a simple tool, 5"
+  
+  Anything else you’d like me to run or change?
+  '''
+# ---

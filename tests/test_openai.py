@@ -59,3 +59,19 @@ async def test_async_model_schema(snapshot):
     response = await model.prompt("invent a dog", key=API_KEY, schema=Dog)
     output = await response.text()
     assert json.loads(output) == snapshot
+
+
+@pytest.mark.vcr
+def test_tools(snapshot):
+    model = llm.get_model("openai/gpt-5-mini")
+
+    def simple_tool(number):
+        "A simple tool"
+        return "This is a simple tool, {}".format(number)
+
+    chain_response = model.chain(
+        "Call simple_tool passing 5",
+        tools=[simple_tool],
+    )
+    output = chain_response.text()
+    assert output == snapshot
