@@ -50,6 +50,8 @@ def register_models(register):
         "gpt-5-2025-08-07": {"vision": True, "reasoning": True},
         "gpt-5-mini-2025-08-07": {"vision": True, "reasoning": True},
         "gpt-5-nano-2025-08-07": {"vision": True, "reasoning": True},
+        # GPT-5 Codex, 23rd September 2025
+        "gpt-5-codex": {"vision": True, "reasoning": True},
     }
     for model_id, options in models.items():
         register(
