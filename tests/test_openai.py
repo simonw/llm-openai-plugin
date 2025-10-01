@@ -76,3 +76,77 @@ def test_tools(snapshot):
     )
     output = chain_response.text()
     assert output == snapshot
+
+
+@pytest.mark.vcr
+def test_conversation_chaining(vcr):
+    """Test that conversations use previous_response_id for chaining"""
+    model = llm.get_model("openai/gpt-4o-mini")
+    conversation = model.conversation()
+
+    # First prompt - no chaining
+    response1 = conversation.prompt("What is 7+7?", key=API_KEY, stream=False)
+    text1 = response1.text()
+    assert "14" in text1
+
+    # Check first request didn't use previous_response_id
+    first_request = json.loads(vcr.requests[0].body)
+    assert "previous_response_id" not in first_request
+    assert "input" in first_request
+
+    # Second prompt - should use chaining
+    response2 = conversation.prompt("Add 3 to that", key=API_KEY, stream=False)
+    text2 = response2.text()
+    assert "17" in text2
+
+    # Check second request used previous_response_id
+    second_request = json.loads(vcr.requests[1].body)
+    assert "previous_response_id" in second_request
+    # Should have previous_response_id from first response
+    assert second_request["previous_response_id"] == response1.response_json["id"]
+    # Input should only contain the new message (not full history)
+    assert len(second_request["input"]) == 1
+    assert second_request["input"][0]["content"] == "Add 3 to that"
+
+
+@pytest.mark.vcr
+def test_conversation_chaining_with_store_false(vcr):
+    """Test that store=False falls back to full conversation history"""
+    model = llm.get_model("openai/gpt-4o-mini")
+    conversation = model.conversation()
+
+    # First prompt with store=True
+    response1 = conversation.prompt("What is 8+8?", key=API_KEY, stream=False, store=True)
+    text1 = response1.text()
+    assert "16" in text1
+
+    # Second prompt with store=False - should NOT use chaining
+    response2 = conversation.prompt("Subtract 5", key=API_KEY, stream=False, store=False)
+    text2 = response2.text()
+    assert "11" in text2
+
+    # Check second request did NOT use previous_response_id
+    second_request = json.loads(vcr.requests[1].body)
+    assert "previous_response_id" not in second_request
+    # Input should contain full conversation history
+    assert len(second_request["input"]) >= 2
+
+
+@pytest.mark.vcr
+def test_chained_response_stored_correctly():
+    """Test that chained responses have previous_response_id in response_json"""
+    model = llm.get_model("openai/gpt-4o-mini")
+    conversation = model.conversation()
+
+    # First response
+    response1 = conversation.prompt("Say 'first'", key=API_KEY, stream=False)
+    response1.text()
+
+    # Second response - chained
+    response2 = conversation.prompt("Say 'second'", key=API_KEY, stream=False)
+    response2.text()
+
+    # Verify response_json contains previous_response_id
+    assert response2.response_json is not None
+    assert "previous_response_id" in response2.response_json
+    assert response2.response_json["previous_response_id"] == response1.response_json["id"]
