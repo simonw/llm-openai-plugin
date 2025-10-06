@@ -75,6 +75,8 @@ OpenAI: openai/gpt-5-2025-08-07
 OpenAI: openai/gpt-5-mini-2025-08-07
 OpenAI: openai/gpt-5-nano-2025-08-07
 OpenAI: openai/gpt-5-codex
+OpenAI: openai/gpt-5-pro
+OpenAI: openai/gpt-5-pro-2025-10-06
 ```
 <!-- [[[end]]] -->
 Add `--options` to see a full list of options that can be provided to each model.
