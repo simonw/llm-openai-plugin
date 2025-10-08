@@ -196,6 +196,49 @@ class _SharedResponses:
             input=input_tokens, output=output_tokens, details=simplify_usage_dict(usage)
         )
 
+    def _build_prompt_messages(self, prompt, image_detail, prev_system=None):
+        """
+        Build messages for a single prompt, including system, user message, and tool results.
+
+        Args:
+            prompt: The prompt to build messages for
+            image_detail: Image detail setting for attachments
+            prev_system: Previous system prompt (to avoid duplicates)
+
+        Returns:
+            List of messages to append
+        """
+        messages = []
+
+        # Add system prompt if present and different from previous
+        if prompt.system and prompt.system != prev_system:
+            messages.append({"role": "system", "content": prompt.system})
+
+        # Add user message (with or without attachments)
+        if not prompt.attachments:
+            messages.append({"role": "user", "content": prompt.prompt or ""})
+        else:
+            attachment_message = []
+            if prompt.prompt:
+                attachment_message.append({"type": "input_text", "text": prompt.prompt})
+            for attachment in prompt.attachments:
+                attachment_message.append(_attachment(attachment, image_detail))
+            messages.append({"role": "user", "content": attachment_message})
+
+        # Add tool results if present
+        for tool_result in getattr(prompt, "tool_results", []):
+            if not tool_result.tool_call_id:
+                continue
+            messages.append(
+                {
+                    "type": "function_call_output",
+                    "call_id": tool_result.tool_call_id,
+                    "output": tool_result.output,
+                }
+            )
+
+        return messages
+
     def _build_messages(self, prompt, conversation):
         messages = []
         current_system = None
@@ -204,37 +247,16 @@ class _SharedResponses:
             image_detail = prompt.options.image_detail or "low"
         if conversation is not None:
             for prev_response in conversation.responses:
-                if (
-                    prev_response.prompt.system
-                    and prev_response.prompt.system != current_system
-                ):
-                    messages.append(
-                        {"role": "system", "content": prev_response.prompt.system}
-                    )
+                # Build messages for the previous prompt
+                prev_messages = self._build_prompt_messages(
+                    prev_response.prompt, image_detail, current_system
+                )
+                messages.extend(prev_messages)
+                # Update current_system if it changed
+                if prev_response.prompt.system:
                     current_system = prev_response.prompt.system
-                if prev_response.attachments:
-                    attachment_message = []
-                    if prev_response.prompt.prompt:
-                        attachment_message.append(
-                            {"type": "input_text", "text": prev_response.prompt.prompt}
-                        )
-                    for attachment in prev_response.attachments:
-                        attachment_message.append(_attachment(attachment, image_detail))
-                    messages.append({"role": "user", "content": attachment_message})
-                else:
-                    messages.append(
-                        {"role": "user", "content": prev_response.prompt.prompt}
-                    )
-                for tool_result in getattr(prev_response.prompt, "tool_results", []):
-                    if not tool_result.tool_call_id:
-                        continue
-                    messages.append(
-                        {
-                            "type": "function_call_output",
-                            "call_id": tool_result.tool_call_id,
-                            "output": tool_result.output,
-                        }
-                    )
+
+                # Add assistant response
                 prev_text = prev_response.text_or_raise()
                 if prev_text:
                     messages.append({"role": "assistant", "content": prev_text})
@@ -249,32 +271,55 @@ class _SharedResponses:
                                 "arguments": json.dumps(tool_call.arguments),
                             }
                         )
-        if prompt.system and prompt.system != current_system:
-            messages.append({"role": "system", "content": prompt.system})
-        if not prompt.attachments:
-            messages.append({"role": "user", "content": prompt.prompt or ""})
-        else:
-            attachment_message = []
-            if prompt.prompt:
-                attachment_message.append({"type": "input_text", "text": prompt.prompt})
-            for attachment in prompt.attachments:
-                attachment_message.append(_attachment(attachment, image_detail))
-            messages.append({"role": "user", "content": attachment_message})
-        for tool_result in getattr(prompt, "tool_results", []):
-            if not tool_result.tool_call_id:
-                continue
-            messages.append(
-                {
-                    "type": "function_call_output",
-                    "call_id": tool_result.tool_call_id,
-                    "output": tool_result.output,
-                }
-            )
+
+        # Build messages for the current prompt
+        current_messages = self._build_prompt_messages(prompt, image_detail, current_system)
+        messages.extend(current_messages)
+
         return messages
 
     def _build_kwargs(self, prompt, conversation):
-        messages = self._build_messages(prompt, conversation)
-        kwargs = {"model": self.model_name, "input": messages}
+        kwargs = {"model": self.model_name}
+
+        # Determine if we should use chaining via previous_response_id
+        store_option = getattr(prompt.options, "store", None)
+        use_chaining = (
+            store_option is not False  # store is True or None (default)
+            and conversation is not None
+            and len(conversation.responses) > 0
+        )
+
+        if use_chaining:
+            # Try to extract previous_response_id from last response
+            last_response = conversation.responses[-1]
+            previous_response_id = None
+            if hasattr(last_response, 'response_json') and last_response.response_json:
+                previous_response_id = last_response.response_json.get('id')
+
+            if previous_response_id:
+                # Use chaining: only send current message + previous_response_id
+                kwargs["previous_response_id"] = previous_response_id
+
+                # Build messages for just the current prompt
+                image_detail = None
+                if self.vision:
+                    image_detail = prompt.options.image_detail or "low"
+
+                # Check if system changed from last response
+                last_system = getattr(last_response.prompt, 'system', None)
+                current_messages = self._build_prompt_messages(prompt, image_detail, last_system)
+
+                kwargs["input"] = current_messages
+            else:
+                # Couldn't find previous_response_id, fall back to full history
+                use_chaining = False
+
+        if not use_chaining:
+            # Fall back to sending full conversation history
+            messages = self._build_messages(prompt, conversation)
+            kwargs["input"] = messages
+
+        # Add other options
         for option in (
             "max_output_tokens",
             "temperature",
